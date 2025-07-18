@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tebak Kata Hewan</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1 id="game-title">Tebak Kata Hewan</h1>
+        <div id="game-area">
+            <img id="animal-image" src="" alt="Gambar Hewan">
+            <p id="clue">Clue: <span id="clue-text"></span></p>
+            <div id="scrambled-word-container">
+                <p>Susun Kata:</p>
+                <div id="scrambled-word"></div>
+            </div>
+            <input type="text" id="answer-input" placeholder="Ketik jawaban Anda di sini">
+            <button id="check-button">Cek Jawaban</button>
+            <p id="message"></p>
+        </div>
+
+        <div id="fact-area" class="hidden">
+            <h2>Fakta Menarik tentang <span id="fact-animal-name"></span></h2>
+            <p id="animal-fact"></p>
+            <button id="next-button">Hewan Selanjutnya</button>
+        </div>
+
+        <div id="congratulations-screen" class="hidden">
+            <h2>SELAMAT ANDA BERHASIL!</h2>
+            <p>Anda telah menebak semua hewan dengan benar. Luar biasa!</p>
+            <button id="play-again-button">Main Lagi</button>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
