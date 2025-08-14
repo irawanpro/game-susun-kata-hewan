@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -75,6 +76,58 @@
             height: 100px;
             bottom: -30px;
             right: -30px;
+        }
+        
+        /* Gaya untuk halaman instruksi */
+        #introScreen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .intro-title {
+            font-family: 'Fredoka One', cursive;
+            color: #FF6347;
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .intro-instructions {
+            font-family: 'Open Sans', sans-serif;
+            font-size: 1.2em;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        .intro-instructions p {
+            margin: 10px 0;
+        }
+        
+        .intro-instructions p strong {
+            color: #1E90FF;
+        }
+
+        .intro-contact {
+            font-family: 'Open Sans', sans-serif;
+            font-size: 0.9em;
+            color: #777;
+            margin-top: 20px;
+        }
+
+        .intro-contact a {
+            color: #4CAF50;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .intro-contact a:hover {
+            text-decoration: underline;
         }
 
         h1 {
@@ -499,7 +552,20 @@
             <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5">
         </div>
 
-        <div id="gameScreen">
+        <div id="introScreen">
+            <h2 class="intro-title">Tebak Suara Hewan! 🐾</h2>
+            <div class="intro-instructions">
+                <p><strong>Selamat datang!</strong> Ayo kita bermain tebak suara hewan.</p>
+                <p>Klik tombol "Mulai" untuk memulai petualangan ini!</p>
+            </div>
+            <button class="main-button" id="startButton">Mulai</button>
+            <div class="intro-contact">
+                <p>Created on: GlowandGrow</p>
+                <p>Contact person: <a href="https://wa.me/6289629065679?text=Halo%20kak%20Rahma,%20saya%20tertarik%20dengan%20produk%20GlowandGrow." target="_blank">+6289629065679/Rahma</a></p>
+            </div>
+        </div>
+
+        <div id="gameScreen" style="display: none;">
             <h1>Tebak Suara Hewan! 🐾</h1>
             <div class="current-question-info" id="questionInfo">Pertanyaan 1 dari 10</div>
             <div class="score-display">Skor: <span id="score">0</span></div>
@@ -532,7 +598,6 @@
             </div>
         </div>
     </div>
-    
     
     </div>
 
@@ -613,6 +678,8 @@
         const correctAnimalSoundEl = document.getElementById('correctAnimalSound');
         const factSoundPlayerEl = document.getElementById('factSoundPlayer');
         const creditWatermarkEl = document.getElementById('creditWatermark');
+        const startButton = document.getElementById('startButton');
+        const introScreenEl = document.getElementById('introScreen');
 
 
         // Fungsi Utilitas
@@ -840,6 +907,13 @@
             factSoundPlayerEl.play().catch(e => console.error("Error playing fact sound:", e));
         }
 
+        function startGame() {
+            introScreen.style.display = 'none';
+            gameScreenEl.style.display = 'block';
+            answeredQuestions = shuffleArray([...animals]);
+            loadNewQuestion();
+        }
+
         // Event listeners
         questionMarkDisplayEl.addEventListener('click', playAnimalSoundWithEffect);
         volumeSliderEl.addEventListener('input', (event) => {
@@ -855,6 +929,7 @@
         previousFactButton.addEventListener('click', previousFacts);
         nextFactButton.addEventListener('click', nextFacts);
         playAgainButton.addEventListener('click', playAgain);
+        startButton.addEventListener('click', startGame);
 
 
         // =========================================================
@@ -894,9 +969,7 @@
         // Inisialisasi game saat halaman dimuat
         document.addEventListener('DOMContentLoaded', () => {
             tryPlayBackgroundMusic();
-            
-            answeredQuestions = shuffleArray([...animals]);
-            loadNewQuestion();
+            // Game tidak langsung dimulai, menunggu user menekan tombol 'Mulai'
         });
 
 </script>
