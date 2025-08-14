@@ -1,4 +1,4 @@
-
+ 
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -17,17 +17,18 @@
             padding: 0;
             transform-origin: top left;
             transform: scale(0.9);
-            overflow-x: hidden;
             font-family: 'Open Sans', sans-serif;
             background: url('assets/audio/background.jpg') no-repeat center center fixed;
             background-size: cover;
             color: #333;
         }
+
         body {
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: calc(100vh / 0.9); /* Menyesuaikan tinggi agar pas di tengah */
+            overflow: hidden; /* MEMATIKAN FUNGSI SCROLLING */
         }
         .game-container {
             background-color: rgba(255, 255, 255, 0.85);
@@ -545,7 +546,7 @@
             { name: "a", sound: "assets/audio/a.mp3", correctSound: "assets/audio/yabenar_a.mp3", sentence: "INI BOLA SAYA", sentenceSound: "assets/audio/ini_bola_saya.mp3" },
             { name: "b", sound: "assets/audio/b.mp3", correctSound: "assets/audio/yabenar_b.mp3", sentence: "BUDI SEDANG MAKAN", sentenceSound: "assets/audio/budi_sedang_makan.mp3" },
             { name: "c", sound: "assets/audio/c.mp3", correctSound: "assets/audio/yabenar_c.mp3", sentence: "AYAH BELI DURIAN", sentenceSound: "assets/audio/ayah_beli_durian.mp3" },
-            { name: "d", sound: "assets/audio/d.mp3", correctSound: "assets/audio/yabenar_d.mp3", sentence: "MATA SAYA SAKIT", sentenceSound: "assets/audio/mata_saya_sakit.mp3" },
+            { name: "d", sound: "assets/audio/d.mp-3", correctSound: "assets/audio/yabenar_d.mp3", sentence: "MATA SAYA SAKIT", sentenceSound: "assets/audio/mata_saya_sakit.mp3" },
             { name: "e", sound: "assets/audio/e.mp3", correctSound: "assets/audio/yabenar_e.mp3", sentence: "KITA BISA LARI", sentenceSound: "assets/audio/kita_bisa_lari.mp3" },
             { name: "f", sound: "assets/audio/f.mp3", correctSound: "assets/audio/yabenar_f.mp3", sentence: "RUMAH SAYA KECIL", sentenceSound: "assets/audio/rumah_saya_kecil.mp3" },
             { name: "g", sound: "assets/audio/g.mp3", correctSound: "assets/audio/yabenar_g.mp3", sentence: "KAKA RAJIN SEKALI", sentenceSound: "assets/audio/kaka_rajin_sekali.mp3" },
