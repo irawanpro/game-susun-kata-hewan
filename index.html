@@ -1,4 +1,4 @@
- 
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -22,7 +22,6 @@
             background-size: cover;
             color: #333;
         }
-
         body {
             display: flex;
             justify-content: center;
@@ -84,6 +83,28 @@
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
         }
 
+        /* Gaya untuk halaman Instruksi */
+        #instructionScreen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .instruction-title {
+            font-family: 'Fredoka One', cursive;
+            color: #1E90FF;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        .instruction-content {
+            font-family: 'Open Sans', sans-serif;
+            font-size: 1.2em;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
         .volume-control {
             position: absolute;
             top: 20px;
@@ -427,7 +448,7 @@
 
         .fact-navigation .emoji-button:hover {
             background-color: #45a049;
-            transform: translateY(-3px);
+            transform: translateY(-3-px);
         }
 
         .fact-navigation .emoji-button:active {
@@ -442,31 +463,42 @@
             bottom: 20px;
             left: 20px;
             transform: none;
+            z-index: 1000;
+        }
+
+        .credit-watermark.show-on-instruction {
+            display: block;
+        }
+        
+        /* Gaya baru untuk Kartu Kontak */
+        .contact-card {
+            background-color: rgba(255, 255, 255, 0.85);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
             text-align: left;
             font-family: 'Open Sans', sans-serif;
-            color: #FFFFFF;
-            font-size: 0.9em;
-            text-shadow: 
-                1px 1px 0 #000,
-                -1px 1px 0 #000,
-                1px -1px 0 #000,
-                -1px -1px 0 #000;
-            z-index: 1000;
-            line-height: 1.1;
+            color: #333;
         }
-
-        .credit-watermark p {
+        
+        .contact-card p {
             margin: 0;
+            font-size: 0.9em;
+            line-height: 1.2;
         }
 
-        .credit-watermark .contact-link {
-            color: #87CEFA;
+        .contact-card .contact-link {
+            color: #007BFF;
             text-decoration: none;
+            font-weight: bold;
             transition: color 0.3s ease;
         }
 
-        .credit-watermark .contact-link:hover {
-            color: #FFFFFF;
+        .contact-card .contact-link:hover {
+            color: #0056b3;
         }
 
         /* Responsif untuk layar kecil */
@@ -490,7 +522,16 @@
             <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5">
         </div>
 
-        <div id="gameScreen">
+        <div id="instructionScreen">
+            <h1 class="instruction-title">Tebak Suara Huruf!🔠✴️</h1>
+            <div class="instruction-content">
+                <p>Selamat datang di permainan "Tebak Suara Huruf"! 🥳</p>
+                <p>Tugas kamu adalah mendengarkan suara yang keluar, lalu menebak huruf mana yang tepat.</p>
+            </div>
+            <button class="main-button" id="startButton">MULAI</button>
+        </div>
+
+        <div id="gameScreen" style="display: none;">
             <h1>Tebak Suara Huruf!🔠✴️</h1>
             <div class="current-question-info" id="questionInfo">Pertanyaan 1 dari 26</div>
             <div class="score-display">Skor: <span id="score">0</span></div>
@@ -524,7 +565,13 @@
         </div>
     </div>
     
-   
+    <div class="credit-watermark show-on-instruction" id="creditWatermark">
+        <div class="contact-card">
+            <p>Created on: GlowandGrow</p>
+            <p>Contact person: 
+                <a href="https://wa.me/6289629065679" class="contact-link" target="_blank">+6289629065679 / Rahma</a>
+            </p>
+        </div>
     </div>
 
     <audio id="backgroundMusic" loop></audio>
@@ -546,7 +593,7 @@
             { name: "a", sound: "assets/audio/a.mp3", correctSound: "assets/audio/yabenar_a.mp3", sentence: "INI BOLA SAYA", sentenceSound: "assets/audio/ini_bola_saya.mp3" },
             { name: "b", sound: "assets/audio/b.mp3", correctSound: "assets/audio/yabenar_b.mp3", sentence: "BUDI SEDANG MAKAN", sentenceSound: "assets/audio/budi_sedang_makan.mp3" },
             { name: "c", sound: "assets/audio/c.mp3", correctSound: "assets/audio/yabenar_c.mp3", sentence: "AYAH BELI DURIAN", sentenceSound: "assets/audio/ayah_beli_durian.mp3" },
-            { name: "d", sound: "assets/audio/d.mp-3", correctSound: "assets/audio/yabenar_d.mp3", sentence: "MATA SAYA SAKIT", sentenceSound: "assets/audio/mata_saya_sakit.mp3" },
+            { name: "d", sound: "assets/audio/d.mp3", correctSound: "assets/audio/yabenar_d.mp3", sentence: "MATA SAYA SAKIT", sentenceSound: "assets/audio/mata_saya_sakit.mp3" },
             { name: "e", sound: "assets/audio/e.mp3", correctSound: "assets/audio/yabenar_e.mp3", sentence: "KITA BISA LARI", sentenceSound: "assets/audio/kita_bisa_lari.mp3" },
             { name: "f", sound: "assets/audio/f.mp3", correctSound: "assets/audio/yabenar_f.mp3", sentence: "RUMAH SAYA KECIL", sentenceSound: "assets/audio/rumah_saya_kecil.mp3" },
             { name: "g", sound: "assets/audio/g.mp3", correctSound: "assets/audio/yabenar_g.mp3", sentence: "KAKA RAJIN SEKALI", sentenceSound: "assets/audio/kaka_rajin_sekali.mp3" },
@@ -595,6 +642,8 @@
         let currentSentencePageIndex = 0;
 
         // Referensi Elemen HTML
+        const instructionScreenEl = document.getElementById('instructionScreen');
+        const startButton = document.getElementById('startButton');
         const questionMarkDisplayEl = document.getElementById('questionMarkDisplay');
         const backgroundMusicEl = document.getElementById('backgroundMusic');
         const gameSoundEl = document.getElementById('gameSound');
@@ -745,7 +794,7 @@
             shuffledSentences = shuffleArray(sentences.filter(s => s.sentence && s.sentenceSound));
             currentSentencePageIndex = 0;
             
-            creditWatermarkEl.style.display = 'block';
+            creditWatermarkEl.classList.add('show-on-instruction');
         }
 
         function showFacts() {
@@ -831,7 +880,7 @@
                 console.error("Autoplay of background music failed on playAgain:", e);
             });
             
-            creditWatermarkEl.style.display = 'none';
+            creditWatermarkEl.classList.remove('show-on-instruction');
             
             loadNewQuestion();
         }
@@ -844,6 +893,16 @@
             factSoundPlayerEl.src = soundSrc;
             factSoundPlayerEl.play().catch(e => console.error("Error playing sentence sound:", e));
         }
+
+        // Fungsi baru untuk memulai permainan
+        function startGame() {
+            instructionScreenEl.style.display = 'none';
+            gameScreenEl.style.display = 'block';
+            creditWatermarkEl.classList.remove('show-on-instruction');
+            answeredQuestions = shuffleArray([...sentences]);
+            loadNewQuestion();
+        }
+
 
         // Event listeners
         questionMarkDisplayEl.addEventListener('click', playLetterSoundWithEffect);
@@ -864,6 +923,7 @@
         previousFactButton.addEventListener('click', previousFacts);
         nextFactButton.addEventListener('click', nextFacts);
         playAgainButton.addEventListener('click', playAgain);
+        startButton.addEventListener('click', startGame);
 
 
         // =========================================================
@@ -911,9 +971,6 @@
         // Inisialisasi game saat halaman dimuat
         document.addEventListener('DOMContentLoaded', () => {
             tryPlayBackgroundMusic();
-            
-            answeredQuestions = shuffleArray(sentences);
-            loadNewQuestion();
         });
     </script>
 </body>
