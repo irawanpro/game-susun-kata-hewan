@@ -2,39 +2,909 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tebak Kata Hewan</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Tebak Suara Hewan!</title>
+    <style>
+        /* Desain Umum dan Font */
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Open+Sans:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: url('assets/audio/background.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: #333;
+            overflow: hidden; /* Mengunci scrolling pada body */
+            
+            /* Penyesuaian baru untuk mengunci tampilan pada zoom 80% */
+            transform: scale(0.8);
+            transform-origin: top left;
+            width: 125%; /* 100 / 0.8 = 125 */
+            height: 125%;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .game-container {
+            background-color: rgba(255, 255, 255, 0.85);
+            border-radius: 25px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            text-align: center;
+            max-width: 650px;
+            width: 90%;
+            transform: scale(0.95);
+            animation: bounceIn 0.8s ease-out forwards;
+            position: relative;
+            overflow: hidden;
+            border: 5px solid #FF6347;
+            box-sizing: border-box;
+            
+            /* Menyesuaikan ulang agar tetap terlihat saat di-zoom out */
+            min-width: 500px; /* Menambah ukuran minimum agar tidak terlalu kecil */
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            70% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        .game-container::before, .game-container::after {
+            content: '';
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            filter: blur(20px);
+            z-index: 0;
+        }
+
+        .game-container::before {
+            width: 150px;
+            height: 150px;
+            top: -50px;
+            left: -50px;
+        }
+
+        .game-container::after {
+            width: 100px;
+            height: 100px;
+            bottom: -30px;
+            right: -30px;
+        }
+
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            color: #FF6347;
+            margin-bottom: 25px;
+            font-size: 2.8em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .volume-control {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            z-index: 10;
+        }
+
+        .volume-control label {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.1em;
+            color: #555;
+        }
+
+        .volume-control input[type="range"] {
+            -webkit-appearance: none;
+            width: 100px;
+            height: 8px;
+            background: #ddd;
+            border-radius: 5px;
+            outline: none;
+            transition: opacity .2s;
+        }
+
+        .volume-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .volume-control input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Penyesuaian ukuran font untuk informasi pertanyaan dan skor */
+        .current-question-info {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.5em; /* Ukuran font diperbesar */
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+
+        .score-display {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.8em; /* Ukuran font diperbesar */
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+
+        .question-mark-display {
+            font-size: 8em;
+            background-color: #333;
+            color: white;
+            border-radius: 50%;
+            width: 1.5em;
+            height: 1.5em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px auto;
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+            animation: pulse 1.5s infinite alternate;
+            line-height: 1;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        .question-mark-display:hover {
+            transform: scale(1.1);
+        }
+
+        .instructions-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 25px;
+            gap: 10px;
+        }
+
+        .instructions-text {
+            font-style: italic;
+            color: #555;
+            font-size: 1.1em;
+            margin: 0;
+        }
+
+        .instruction-button {
+            background-color: #1E90FF;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .instruction-button:hover {
+            background-color: #007BFF;
+            transform: scale(1.05);
+        }
+
+        .instruction-button:active {
+            transform: scale(0.95);
+        }
+
+        .choices-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .choice-button {
+            background-color: #87CEEB;
+            color: white;
+            padding: 15px 10px;
+            border: none;
+            border-radius: 15px;
+            font-size: 3em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease-in-out, transform 0.1s ease-in-out, box-shadow 0.3s ease-in-out;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+            font-family: 'Fredoka One', cursive;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .choice-button:hover {
+            background-color: #6495ED;
+            transform: translateY(-3px);
+        }
+
+        .choice-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .choice-button.correct-feedback {
+            background-color: #4CAF50;
+            animation: correctPulse 0.5s forwards;
+        }
+
+        .choice-button.wrong-feedback {
+            background-color: #F44336;
+            animation: wrongShake 0.5s forwards;
+        }
+
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes wrongShake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+
+        #feedback {
+            margin-top: 25px;
+            font-size: 1.5em;
+            font-weight: bold;
+            min-height: 1.8em;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        /* Gaya untuk pesan GAME SELESAI */
+        .game-over-message {
+            font-family: 'Fredoka One', cursive;
+            color: #FF6347;
+            font-size: 3.5em;
+            margin-top: 50px;
+            text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.15);
+            animation: fadeInScale 1s ease-out forwards;
+        }
+
+        /* Gaya untuk teks Skor Akhir */
+        .final-score-text {
+            font-family: 'Fredoka One', cursive;
+            color: #4CAF50;
+            font-size: 1.8em;
+            margin-top: 20px;
+            margin-bottom: 30px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes fadeInScale {
+            0% { opacity: 0; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .main-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.5em;
+            font-family: 'Fredoka One', cursive;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .main-button:hover {
+            background-color: #45a049;
+            transform: translateY(-3px);
+        }
+
+        .main-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* --- Gaya untuk Fakta Menarik --- */
+        #factsScreen {
+            display: none;
+            padding: 20px;
+            text-align: left;
+            max-height: 70vh;
+            overflow-y: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        #factsScreen::-webkit-scrollbar {
+            display: none;
+        }
+
+        .facts-title {
+            font-family: 'Fredoka One', cursive;
+            color: #FF6347;
+            font-size: 2.5em;
+            margin-bottom: 25px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .fact-item {
+            margin-bottom: 20px;
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 15px;
+        }
+
+        .fact-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .fact-item h3 {
+            font-family: 'Fredoka One', cursive;
+            color: #1E90FF;
+            font-size: 1.6em;
+            margin-top: 0;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .fact-speaker-button {
+            background: none;
+            border: none;
+            font-size: 1.2em;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            margin-left: 5px;
+            transition: transform 0.1s ease-in-out;
+        }
+
+        .fact-speaker-button:hover {
+            transform: scale(1.1);
+        }
+
+        .fact-speaker-button:active {
+            transform: scale(0.9);
+        }
+
+        .fact-item p {
+            font-family: 'Open Sans', sans-serif;
+            font-size: 1.1em;
+            line-height: 1.6;
+            color: #444;
+            text-align: justify;
+        }
+
+        .fact-navigation {
+            margin-top: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        /* Gaya untuk tombol navigasi emoji */
+        .fact-navigation .emoji-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 50%; /* Membuat tombol menjadi lingkaran */
+            font-size: 2em; /* Ukuran emoji */
+            width: 60px; /* Ukuran tombol (sesuaikan) */
+            height: 60px; /* Ukuran tombol (sesuaikan) */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+            font-family: 'Fredoka One', cursive;
+        }
+
+        .fact-navigation .emoji-button:hover {
+            background-color: #45a049;
+            transform: translateY(-3px);
+        }
+
+        .fact-navigation .emoji-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* --- Gaya untuk Watermark Kredit (diperbarui) --- */
+        .credit-watermark {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            transform: none;
+            text-align: left;
+            font-family: 'Open Sans', sans-serif;
+            color: #FFFFFF;
+            font-size: 0.9em;
+            text-shadow: 
+                1px 1px 0 #000,
+                -1px 1px 0 #000,
+                1px -1px 0 #000,
+                -1px -1px 0 #000;
+            z-index: 1000;
+            line-height: 1.1;
+        }
+
+        .credit-watermark p {
+            margin: 0;
+        }
+
+        .credit-watermark .contact-link {
+            color: #87CEFA;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .credit-watermark .contact-link:hover {
+            color: #FFFFFF;
+        }
+
+        /* Responsif untuk layar kecil */
+        @media (max-width: 768px) {
+            .credit-watermark {
+                bottom: 10px;
+                left: 10px;
+            }
+            .fact-navigation .emoji-button {
+                width: 50px;
+                height: 50px;
+                font-size: 1.8em;
+            }
+        }
+        @media (max-width: 600px) {
+            body {
+                /* Perubahan ini diganti oleh transform di atas */
+                /* transform: scale(1); */
+                /* width: 100%; */
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1 id="game-title">Tebak Kata Hewan</h1>
-        <div id="game-area">
-            <img id="animal-image" src="" alt="Gambar Hewan">
-            <p id="clue">Clue: <span id="clue-text"></span></p>
-            <div id="scrambled-word-container">
-                <p>Susun Kata:</p>
-                <div id="scrambled-word"></div>
+    <div class="game-container">
+        <div class="volume-control">
+            <label for="volumeSlider">Musik:</label>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5">
+        </div>
+
+        <div id="gameScreen">
+            <h1>Tebak Suara Hewan! 🐾</h1>
+            <div class="current-question-info" id="questionInfo">Pertanyaan 1 dari 10</div>
+            <div class="score-display">Skor: <span id="score">0</span></div>
+            <div class="question-mark-display" id="questionMarkDisplay">?</div>
+            
+            <div class="instructions-container">
+                <p class="instructions-text" id="instructionsText">Klik tanda tanya untuk mendengar suaranya. Lalu, pilih emoji hewan yang benar!</p>
+                <button class="instruction-button" id="playInstructionSound">🔊</button>
             </div>
-            <input type="text" id="answer-input" placeholder="Ketik jawaban Anda di sini">
-            <button id="check-button">Cek Jawaban</button>
-            <p id="message"></p>
+            
+            <div class="choices-container" id="choicesContainer">
+            </div>
+            <div id="feedback"></div>
         </div>
 
-        <div id="fact-area" class="hidden">
-            <h2>Fakta Menarik tentang <span id="fact-animal-name"></span></h2>
-            <p id="animal-fact"></p>
-            <button id="next-button">Hewan Selanjutnya</button>
+        <div id="gameOverScreen" style="display: none;">
+            <div class="game-over-message" id="gameOverText">GAME SELESAI</div>
+            <div class="final-score-text" id="finalScoreText"></div>
+            <button class="main-button" id="showFactsButton">FAKTA MENARIK</button>
         </div>
 
-        <div id="congratulations-screen" class="hidden">
-            <h2>SELAMAT ANDA BERHASIL!</h2>
-            <p>Anda telah menebak semua hewan dengan benar. Luar biasa!</p>
-            <button id="play-again-button">Main Lagi</button>
+        <div id="factsScreen" style="display: none;">
+            <h2 class="facts-title">FAKTA MENARIK 🧠</h2>
+            <div id="factsContent">
+            </div>
+            <div class="fact-navigation">
+                <button class="emoji-button" id="previousFactButton" style="display: none;">⬅️</button>
+                <button class="emoji-button" id="nextFactButton" style="display: none;">➡️</button>
+                <button class="emoji-button" id="playAgainButton" style="display: none;">🔄</button>
+            </div>
         </div>
     </div>
+    
+    <div class="credit-watermark" id="creditWatermark">
+        <p>
+            Dibuat oleh Anak-Anak Hebat!<br>
+            Hubungi kami: <a class="contact-link" href="mailto:emailanda@email.com">emailanda@email.com</a>
+        </p>
+    </div>
 
-    <script src="data.js"></script>
-    <script src="script.js"></script>
+    <audio id="backgroundMusic" loop></audio>
+    <audio id="gameSound"></audio>
+    <audio id="feedbackSound"></audio>
+    <audio id="clickEffectSound"></audio>
+    <audio id="correctAnimalSound"></audio>
+    <audio id="factSoundPlayer"></audio>
+
+    <script>
+        // ====================================================================
+        // PANDUAN PEMELIHARAAN KODE
+        // ====================================================================
+
+        // --- 1. MENAMBAH/MENGUBAH HEWAN (PERTANYAAN) DAN FAKTA MENARIK ---
+        // PENTING: Untuk suara fakta, Anda perlu menyiapkan file .mp3 di folder 'assets/audio/facts/'
+        // Contoh: assets/audio/facts/fakta_singa.mp3, assets/audio/facts/fakta_anjing.mp3, dst.
+        const animals = [
+            { name: "singa", emoji: "🦁", sound: "assets/audio/lion.mp3", correctSound: "assets/audio/yabenar_singa.mp3", fact: "Singa adalah satu-satunya kucing besar yang hidup berkelompok, disebut kebanggaan (pride).", factSound: "assets/audio/facts/fakta_singa.mp3" },
+            { name: "anjing", emoji: "🐶", sound: "assets/audio/dog.mp3", correctSound: "assets/audio/yabenar_anjing.mp3", fact: "Anjing dapat belajar hingga 250 kata dan isyarat, setara dengan anak berusia dua tahun.", factSound: "assets/audio/facts/fakta_anjing.mp3" },
+            { name: "kucing", emoji: "🐱", sound: "assets/audio/cat.mp3", correctSound: "assets/audio/yabenar_kucing.mp3", fact: "Kucing bisa melompat enam kali tinggi tubuhnya. Mereka juga menghabiskan 70% hidupnya untuk tidur.", factSound: "assets/audio/facts/fakta_kucing.mp3" },
+            { name: "gajah", emoji: "🐘", sound: "assets/audio/elephant.mp3", correctSound: "assets/audio/yabenar_gajah.mp3", fact: "Gajah adalah hewan darat terbesar dan memiliki ingatan yang luar biasa, bisa mengingat lokasi air bahkan setelah bertahun-tahun.", factSound: "assets/audio/facts/fakta_gajah.mp3" },
+            { name: "kambing", emoji: "🐐", sound: "assets/audio/goat.mp3", correctSound: "assets/audio/yabenar_kambing.mp3", fact: "Kambing memiliki pupil mata berbentuk persegi panjang, memberikan mereka penglihatan 320 derajat tanpa perlu menggerakkan kepala.", factSound: "assets/audio/facts/fakta_kambing.mp3" },
+            { name: "sapi", emoji: "🐄", sound: "assets/audio/cow.mp3", correctSound: "assets/audio/yabenar_sapi.mp3", fact: "Sapi bisa menghasilkan hingga 12 galon air liur per hari. Mereka juga punya empat perut.", factSound: "assets/audio/facts/fakta_sapi.mp3" },
+            { name: "ayam", emoji: "🐔", sound: "assets/audio/chicken.mp3", correctSound: "assets/audio/yabenar_ayam.mp3", fact: "Ayam adalah keturunan langsung dari dinosaurus. Mereka bahkan punya kerabat hidup yang disebut 'Red Junglefowl'.", factSound: "assets/audio/facts/fakta_ayam.mp3" },
+            { name: "kuda", emoji: "🐎", sound: "assets/audio/horse.mp3", correctSound: "assets/audio/yabenar_kuda.mp3", fact: "Kuda tidak bisa muntah. Ini membuat mereka rentan terhadap kolik yang bisa mengancam jiwa.", factSound: "assets/audio/facts/fakta_kuda.mp3" },
+            { name: "monyet", emoji: "🐒", sound: "assets/audio/monkey.mp3", correctSound: "assets/audio/yabenar_monyet.mp3", fact: "Ada lebih dari 260 spesies monyet yang dikenal. Mereka adalah kerabat dekat manusia.", factSound: "assets/audio/facts/fakta_monyet.mp3" },
+            { name: "burung", emoji: "🐦", sound: "assets/audio/bird.mp3", correctSound: "assets/audio/yabenar_burung.mp3", fact: "Hanya sekitar 10% dari spesies burung di dunia yang bersifat monogami seumur hidup.", factSound: "assets/audio/facts/fakta_burung.mp3" }
+        ];
+
+        // --- 2. MENGATUR JALUR SUARA GAME UTAMA DAN UMPAN BALIK ---
+        const gameSounds = {
+            backgroundMusic: "assets/audio/background_music.mp3",
+            clickEffect: "assets/audio/click.mp3",
+            instruction: "assets/audio/instruksi_tebak_suara.mp3",
+            correctFeedback: "assets/audio/benar_sekali.mp3",
+            wrongFeedback: "assets/audio/coba_lagi.mp3",
+        };
+
+        // --- 3. PENGATURAN DURASI SUARA DAN JEDA ---
+        const ANIMAL_SOUND_DURATION = 2000;
+        const DELAY_AFTER_FEEDBACK = 4000;
+        const CLICK_EFFECT_DELAY = 500;
+        const FACTS_PER_PAGE = 3;
+
+        // Variabel Status Game
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let choicesEnabled = true;
+        let answeredQuestions = [];
+        let shuffledFacts = [];
+        let currentFactPageIndex = 0;
+
+        // Referensi Elemen HTML
+        const questionMarkDisplayEl = document.getElementById('questionMarkDisplay');
+        const backgroundMusicEl = document.getElementById('backgroundMusic');
+        const gameSoundEl = document.getElementById('gameSound');
+        const feedbackSoundEl = document.getElementById('feedbackSound');
+        const clickEffectSoundEl = document.getElementById('clickEffectSound');
+        const volumeSliderEl = document.getElementById('volumeSlider');
+        const feedbackEl = document.getElementById('feedback');
+        const scoreEl = document.getElementById('score');
+        const choicesContainerEl = document.getElementById('choicesContainer');
+        const instructionsTextEl = document.getElementById('instructionsText');
+        const playInstructionSoundBtn = document.getElementById('playInstructionSound');
+        const questionInfoEl = document.getElementById('questionInfo');
+        const gameScreenEl = document.getElementById('gameScreen');
+        const gameOverScreenEl = document.getElementById('gameOverScreen');
+        const gameOverTextEl = document.getElementById('gameOverText');
+        const finalScoreTextEl = document.getElementById('finalScoreText');
+        const showFactsButton = document.getElementById('showFactsButton');
+        const factsScreenEl = document.getElementById('factsScreen');
+        const factsContentEl = document.getElementById('factsContent');
+        const previousFactButton = document.getElementById('previousFactButton');
+        const nextFactButton = document.getElementById('nextFactButton');
+        const playAgainButton = document.getElementById('playAgainButton');
+        const correctAnimalSoundEl = document.getElementById('correctAnimalSound');
+        const factSoundPlayerEl = document.getElementById('factSoundPlayer');
+        const creditWatermarkEl = document.getElementById('creditWatermark');
+
+
+        // Fungsi Utilitas
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function loadNewQuestion() {
+            if (currentQuestionIndex >= answeredQuestions.length) {
+                displayGameCompleted();
+                return;
+            }
+
+            choicesEnabled = true;
+            feedbackEl.textContent = '';
+            feedbackEl.className = '';
+
+            const currentAnimal = answeredQuestions[currentQuestionIndex];
+            questionMarkDisplayEl.textContent = '?';
+            
+            questionInfoEl.textContent = `Pertanyaan ${currentQuestionIndex + 1} dari ${answeredQuestions.length}`;
+
+            generateChoices(currentAnimal);
+        }
+
+        function generateChoices(correctAnimal) {
+            choicesContainerEl.innerHTML = '';
+
+            let choiceAnimals = animals.filter(a => a.name !== correctAnimal.name);
+            shuffleArray(choiceAnimals);
+
+            const selectedWrongChoices = choiceAnimals.slice(0, Math.min(3, animals.length - 1));
+            
+            let choices = [...selectedWrongChoices, correctAnimal];
+            shuffleArray(choices);
+
+            choices.forEach(animal => {
+                const button = document.createElement('button');
+                button.textContent = animal.emoji;
+                button.classList.add('choice-button');
+                button.onclick = () => checkAnswer(animal, correctAnimal, button);
+                choicesContainerEl.appendChild(button);
+            });
+        }
+
+        function playAnimalSoundWithEffect() {
+            clickEffectSoundEl.src = gameSounds.clickEffect;
+            clickEffectSoundEl.play().catch(e => console.error("Error playing click sound:", e));
+
+            questionMarkDisplayEl.style.transform = 'scale(1.1)';
+            setTimeout(() => questionMarkDisplayEl.style.transform = 'scale(1)', 200);
+
+            setTimeout(() => {
+                const currentAnimal = answeredQuestions[currentQuestionIndex];
+                gameSoundEl.src = currentAnimal.sound;
+                gameSoundEl.play().catch(e => console.error("Error playing animal sound:", e));
+
+                setTimeout(() => {
+                    gameSoundEl.pause();
+                    gameSoundEl.currentTime = 0;
+                }, ANIMAL_SOUND_DURATION);
+            }, CLICK_EFFECT_DELAY);
+        }
+
+        async function checkAnswer(selectedAnimal, correctAnimal, clickedButton) {
+            if (!choicesEnabled) return;
+
+            choicesEnabled = false;
+
+            const allButtons = choicesContainerEl.querySelectorAll('.choice-button');
+            allButtons.forEach(btn => {
+                btn.classList.remove('correct-feedback', 'wrong-feedback');
+            });
+
+            if (selectedAnimal.name === correctAnimal.name) {
+                feedbackEl.textContent = 'Benar! 🎉';
+                feedbackEl.classList.add('correct');
+                
+                correctAnimalSoundEl.src = correctAnimal.correctSound;
+                await correctAnimalSoundEl.play().catch(e => console.error("Error playing correct animal sound:", e));
+
+                feedbackSoundEl.src = gameSounds.correctFeedback;
+                await feedbackSoundEl.play().catch(e => console.error("Error playing correct feedback sound:", e));
+                
+                clickedButton.classList.add('correct-feedback');
+                score++;
+                scoreEl.textContent = score;
+                currentQuestionIndex++;
+
+                setTimeout(() => {
+                    loadNewQuestion();
+                }, DELAY_AFTER_FEEDBACK);
+            } else {
+                feedbackEl.textContent = `Salah. Jawaban yang benar adalah ${correctAnimal.name.charAt(0).toUpperCase() + correctAnimal.name.slice(1)}. 😞`;
+                feedbackEl.classList.add('wrong');
+                feedbackSoundEl.src = gameSounds.wrongFeedback;
+                await feedbackSoundEl.play().catch(e => console.error("Error playing wrong feedback sound:", e));
+                clickedButton.classList.add('wrong-feedback');
+
+                allButtons.forEach(btn => {
+                    if (btn.textContent === correctAnimal.emoji) {
+                        btn.classList.add('correct-feedback');
+                    }
+                });
+                currentQuestionIndex++;
+
+                setTimeout(() => {
+                    loadNewQuestion();
+                }, DELAY_AFTER_FEEDBACK);
+            }
+        }
+
+        function displayGameCompleted() {
+            gameScreenEl.style.display = 'none';
+            gameOverScreenEl.style.display = 'block';
+            
+            finalScoreTextEl.textContent = `Skor kamu ${score} dari ${animals.length} soal`;
+            
+            shuffledFacts = shuffleArray(animals.filter(animal => animal.fact && animal.factSound));
+            currentFactPageIndex = 0;
+            
+            creditWatermarkEl.style.display = 'block';
+        }
+
+        function showFacts() {
+            gameOverScreenEl.style.display = 'none';
+            factsScreenEl.style.display = 'block';
+            
+            backgroundMusicEl.play().catch(e => console.error("Failed to play background music on facts screen:", e));
+
+            loadFactsPage();
+        }
+
+        function loadFactsPage() {
+            factsContentEl.innerHTML = '';
+            
+            const startIndex = currentFactPageIndex * FACTS_PER_PAGE;
+            const endIndex = Math.min(startIndex + FACTS_PER_PAGE, shuffledFacts.length);
+            
+            for (let i = startIndex; i < endIndex; i++) {
+                const fact = shuffledFacts[i];
+                const factDiv = document.createElement('div');
+                factDiv.classList.add('fact-item');
+                factDiv.innerHTML = `
+                    <h3>
+                        ${i + 1}. ${fact.name.toUpperCase()}
+                        <span style="font-size: 0.8em;">(${fact.emoji})</span>
+                        <button class="fact-speaker-button" data-sound-src="${fact.factSound}">🔊</button>
+                    </h3>
+                    <p>${fact.fact}</p>
+                `;
+                factsContentEl.appendChild(factDiv);
+            }
+
+            factsContentEl.querySelectorAll('.fact-speaker-button').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const soundSrc = event.target.dataset.soundSrc;
+                    playFactSound(soundSrc);
+                });
+            });
+
+            if (currentFactPageIndex > 0) {
+                previousFactButton.style.display = 'inline-flex';
+            } else {
+                previousFactButton.style.display = 'none';
+            }
+
+            if (endIndex < shuffledFacts.length) {
+                nextFactButton.style.display = 'inline-flex';
+                playAgainButton.style.display = 'none';
+            } else {
+                nextFactButton.style.display = 'none';
+                playAgainButton.style.display = 'inline-flex';
+            }
+            
+            factsScreenEl.scrollTop = 0;
+        }
+
+        function nextFacts() {
+            currentFactPageIndex++;
+            loadFactsPage();
+        }
+
+        function previousFacts() {
+            currentFactPageIndex--;
+            if (currentFactPageIndex < 0) {
+                currentFactPageIndex = 0;
+            }
+            loadFactsPage();
+        }
+
+        function playAgain() {
+            factsScreenEl.style.display = 'none';
+            score = 0;
+            scoreEl.textContent = score;
+            currentQuestionIndex = 0;
+            answeredQuestions = shuffleArray([...animals]);
+            gameScreenEl.style.display = 'block';
+            
+            choicesContainerEl.style.display = 'grid';
+            questionMarkDisplayEl.style.display = 'flex';
+            instructionsTextEl.style.display = 'inline';
+            playInstructionSoundBtn.style.display = 'inline-block';
+            feedbackEl.innerHTML = '';
+            
+            backgroundMusicEl.play().catch(e => {
+                console.error("Autoplay of background music failed on playAgain:", e);
+            });
+            
+            creditWatermarkEl.style.display = 'none';
+            
+            loadNewQuestion();
+        }
+
+        function playFactSound(soundSrc) {
+            if (!factSoundPlayerEl.paused) {
+                factSoundPlayerEl.pause();
+                factSoundPlayerEl.currentTime = 0;
+            }
+            factSoundPlayerEl.src = soundSrc;
+            factSoundPlayerEl.play().catch(e => console.error("Error playing fact sound:", e));
+        }
+
+        // Event listeners
+        questionMarkDisplayEl.addEventListener('click', playAnimalSoundWithEffect);
+        volumeSliderEl.addEventListener('input', (event) => {
+            backgroundMusicEl.volume = event.target.value;
+            gameSoundEl.volume = event.target.value;
+            feedbackSoundEl.volume = event.target.value;
+            clickEffectSoundEl.volume = event.target.value;
+            correctAnimalSoundEl.volume = event.target.value;
+            factSoundPlayerEl.volume = event.target.value;
+        });
+        playInstructionSoundBtn.addEventListener('click', playInstructionSound);
+        showFactsButton.addEventListener('click', showFacts);
+        previousFactButton.addEventListener('click', previousFacts);
+        nextFactButton.addEventListener('click', nextFacts);
+        playAgainButton.addEventListener('click', playAgain);
+
+
+        // =========================================================
+        // PENGATURAN AWAL GAME (Penting untuk Autoplay Musik)
+        // =========================================================
+
+        function tryPlayBackgroundMusic() {
+            backgroundMusicEl.src = gameSounds.backgroundMusic;
+            backgroundMusicEl.volume = 0.1;
+            volumeSliderEl.value = 0.1;
+            
+            backgroundMusicEl.currentTime = 0;
+
+            backgroundMusicEl.play().catch(e => {
+                console.error("Autoplay of background music failed:", e);
+                document.body.addEventListener('click', enableBackgroundMusic, { once: true });
+                document.body.addEventListener('touchend', enableBackgroundMusic, { once: true });
+            });
+        }
+
+        function enableBackgroundMusic() {
+            if (backgroundMusicEl.paused) {
+                backgroundMusicEl.play().catch(e => {
+                    console.error("Failed to play background music on user interaction:", e);
+                });
+            }
+            document.body.removeEventListener('click', enableBackgroundMusic);
+            document.body.removeEventListener('touchend', enableBackgroundMusic);
+        }
+
+        // --- MENGATUR TOMBOL SUARA INSTRUKSI ---
+        function playInstructionSound() {
+            gameSoundEl.src = gameSounds.instruction;
+            gameSoundEl.play().catch(e => console.error("Error playing instruction sound:", e));
+        }
+
+        // Inisialisasi game saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', () => {
+            tryPlayBackgroundMusic();
+            
+            answeredQuestions = shuffleArray([...animals]);
+            loadNewQuestion();
+        });
+
+</script>
+
 </body>
 </html>
+
