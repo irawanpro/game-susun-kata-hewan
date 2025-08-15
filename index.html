@@ -41,20 +41,21 @@ const nodes = [
 ];
 let visited = [];
 let drawing = false;
+let currentPath = [];
 
 function draw(){
   ctx.clearRect(0,0,width,height);
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
 
-  // Garis sambungan
-  if (visited.length > 0) {
+  // Garis sambungan permanen
+  if (currentPath.length > 0) {
     ctx.strokeStyle = '#22c55e';
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(nodes[visited[0]].x*width, nodes[visited[0]].y*height);
-    for (let i=1;i<visited.length;i++) {
-      ctx.lineTo(nodes[visited[i]].x*width, nodes[visited[i]].y*height);
+    ctx.moveTo(currentPath[0].x, currentPath[0].y);
+    for (let i=1;i<currentPath.length;i++) {
+      ctx.lineTo(currentPath[i].x, currentPath[i].y);
     }
     ctx.stroke();
   }
@@ -83,29 +84,45 @@ canvas.addEventListener('pointerdown', e=>{
   if (node !== null) {
     drawing = true;
     visited = [node];
+    currentPath = [{x: nodes[node].x*width, y: nodes[node].y*height}];
     draw();
   }
 });
+
 canvas.addEventListener('pointermove', e=>{
   if (!drawing) return;
   const rect = canvas.getBoundingClientRect();
-  const node = getNodeAt(e.clientX - rect.left, e.clientY - rect.top);
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  currentPath.push({x, y});
+  const node = getNodeAt(x, y);
   if (node !== null && !visited.includes(node)) {
     visited.push(node);
-    draw();
     if (visited.length === nodes.length) {
       setTimeout(()=>alert('Berhasil! Semua titik terhubung'), 100);
     }
   }
+  draw();
 });
+
 window.addEventListener('pointerup', ()=>{ drawing = false; });
 
-// Fullscreen + orientasi
+// Fullscreen + orientasi landscape lock & auto-correct
 async function enterFullscreen() {
   const elem = document.documentElement;
-  try { await (elem.requestFullscreen?.call(elem) || elem.webkitRequestFullscreen?.call(elem)); } catch {}
-  try { await screen.orientation?.lock('landscape'); } catch {}
+  if (elem.requestFullscreen) await elem.requestFullscreen();
+  else if (elem.webkitRequestFullscreen) await elem.webkitRequestFullscreen();
+
+  if (screen.orientation && screen.orientation.lock) {
+    try { await screen.orientation.lock('landscape'); } catch (e) {}
+  }
 }
+
+window.addEventListener('orientationchange', async () => {
+  if (screen.orientation.type.startsWith('portrait')) {
+    try { await screen.orientation.lock('landscape'); } catch (e) {}
+  }
+});
 
 document.getElementById('startBtn').addEventListener('click', ()=>{
   enterFullscreen();
