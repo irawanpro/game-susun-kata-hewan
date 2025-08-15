@@ -1,3 +1,4 @@
+<!doctype html>
 
 <html lang="id">
 <head>
@@ -7,114 +8,109 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <title>One Line Draw – PWA</title>
   <style>
-    html, body { height: 100%; margin: 0; background:#0f172a; color:#e2e8f0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; }
-    #app { position: fixed; inset: 0; display: grid; grid-template-rows: auto 1fr auto; }
-    header, footer { padding: 8px 12px; background: rgba(15,23,42,.6); backdrop-filter: blur(6px); }
-    header { display:flex; align-items:center; gap:8px; }
-    header button { appearance:none; border:none; border-radius:14px; padding:10px 14px; background:#22c55e; color:#041016; font-weight:700; box-shadow: 0 6px 18px rgba(34,197,94,.4); }
-    header button:active { transform: translateY(1px); }
-    #canvasWrap { position:relative; }
-    canvas { display:block; width:100%; height:100%; touch-action:none; background:#0b1220; }
-    .pill { font-size:12px; opacity:.8; }
+    html, body { height: 100%; margin: 0; background:#0f172a; color:#e2e8f0; }
+    canvas { display:block; width:100%; height:100%; touch-action:none; }
+    #startBtn { position: fixed; top: 10px; left: 10px; z-index: 10; padding: 10px 16px; border: none; background: #22c55e; color: #041016; border-radius: 8px; font-weight: bold; }
   </style>
 </head>
 <body>
-  <div id="app">
-    <header>
-      <button id="startBtn">Mulai • Fullscreen</button>
-      <span class="pill">PWA • anti‑zoom • immersive</span>
-      <span id="installHint" class="pill" style="margin-left:auto"></span>
-    </header><div id="canvasWrap">
-  <canvas id="game"></canvas>
-</div>
-
-<footer>
-  <small>Swipe dari bawah/atas untuk memunculkan navigasi sistem. Ketuk dua kali tombol Home/Back jika diperlukan.</small>
-</footer>
-
-  </div><script>
-// ---- Anti zoom (wheel+pinch) ----
+  <button id="startBtn">Mulai Game</button>
+  <canvas id="game"></canvas><script>
+// Anti zoom
 window.addEventListener('wheel', (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive:false });
 ['gesturestart','gesturechange','gestureend'].forEach(ev => window.addEventListener(ev, e=>e.preventDefault(), {passive:false}));
 
-// ---- Canvas sizing ----
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
+let width, height;
 function resizeCanvas() {
-  // Handle devicePixelRatio for crisp lines
-  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-  const { clientWidth:w, clientHeight:h } = canvas.parentElement;
-  canvas.width = Math.floor(w * dpr);
-  canvas.height = Math.floor(h * dpr);
-  canvas.style.width = w + 'px';
-  canvas.style.height = h + 'px';
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  drawGrid();
+  width = canvas.clientWidth;
+  height = canvas.clientHeight;
+  canvas.width = width;
+  canvas.height = height;
+  draw();
 }
 window.addEventListener('resize', resizeCanvas);
 
-// ---- Simple one-line draw demo ----
-let drawing = false; let points = [];
-function drawGrid(){
-  const w = canvas.width / (window.devicePixelRatio||1);
-  const h = canvas.height / (window.devicePixelRatio||1);
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.strokeStyle = '#0ea5e9'; ctx.globalAlpha = .15;
-  for (let x=0; x<w; x+=40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
-  for (let y=0; y<h; y+=40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
-  ctx.globalAlpha = 1;
-  drawPath();
+// Level data: titik dan urutan sambungan
+const nodes = [
+  {x:0.2, y:0.2},
+  {x:0.8, y:0.2},
+  {x:0.8, y:0.8},
+  {x:0.2, y:0.8}
+];
+let visited = [];
+let drawing = false;
+
+function draw(){
+  ctx.clearRect(0,0,width,height);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  // Garis sambungan
+  if (visited.length > 0) {
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(nodes[visited[0]].x*width, nodes[visited[0]].y*height);
+    for (let i=1;i<visited.length;i++) {
+      ctx.lineTo(nodes[visited[i]].x*width, nodes[visited[i]].y*height);
+    }
+    ctx.stroke();
+  }
+
+  // Titik
+  nodes.forEach((n,i)=>{
+    ctx.beginPath();
+    ctx.arc(n.x*width, n.y*height, 12, 0, Math.PI*2);
+    ctx.fillStyle = visited.includes(i) ? '#22c55e' : '#0ea5e9';
+    ctx.fill();
+  });
 }
-function drawPath(){
-  if (points.length < 2) return;
-  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-  ctx.lineWidth = 8; ctx.strokeStyle = '#22c55e';
-  ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y);
-  for (let i=1;i<points.length;i++) ctx.lineTo(points[i].x, points[i].y);
-  ctx.stroke();
+
+function getNodeAt(x,y){
+  for (let i=0;i<nodes.length;i++){
+    let dx = x - nodes[i].x*width;
+    let dy = y - nodes[i].y*height;
+    if (Math.sqrt(dx*dx+dy*dy) < 20) return i;
+  }
+  return null;
 }
-function getPos(e){
-  if (e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  return { x: e.clientX, y: e.clientY };
-}
-function toLocal({x,y}){
+
+canvas.addEventListener('pointerdown', e=>{
   const rect = canvas.getBoundingClientRect();
-  return { x: x-rect.left, y: y-rect.top };
-}
-canvas.addEventListener('pointerdown', (e)=>{ drawing = true; points = [ toLocal(getPos(e)) ]; drawGrid(); });
-canvas.addEventListener('pointermove', (e)=>{ if(!drawing) return; points.push(toLocal(getPos(e))); drawGrid(); });
+  const node = getNodeAt(e.clientX - rect.left, e.clientY - rect.top);
+  if (node !== null) {
+    drawing = true;
+    visited = [node];
+    draw();
+  }
+});
+canvas.addEventListener('pointermove', e=>{
+  if (!drawing) return;
+  const rect = canvas.getBoundingClientRect();
+  const node = getNodeAt(e.clientX - rect.left, e.clientY - rect.top);
+  if (node !== null && !visited.includes(node)) {
+    visited.push(node);
+    draw();
+    if (visited.length === nodes.length) {
+      setTimeout(()=>alert('Berhasil! Semua titik terhubung'), 100);
+    }
+  }
+});
 window.addEventListener('pointerup', ()=>{ drawing = false; });
 
-// ---- Fullscreen + orientation lock ----
+// Fullscreen + orientasi
 async function enterFullscreen() {
   const elem = document.documentElement;
   try { await (elem.requestFullscreen?.call(elem) || elem.webkitRequestFullscreen?.call(elem)); } catch {}
   try { await screen.orientation?.lock('landscape'); } catch {}
 }
 
-// ---- PWA install handling ----
-let deferredPrompt = null; const installHint = document.getElementById('installHint');
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault(); deferredPrompt = e; installHint.textContent = 'Pasang ke Layar Utama untuk fullscreen permanen';
-});
-async function promptInstall(){
-  if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; installHint.textContent = '';
-}
-
-// ---- Start button: FS + install prompt fallback ----
-const startBtn = document.getElementById('startBtn');
-startBtn.addEventListener('click', async ()=>{
-  await enterFullscreen();
-  if (deferredPrompt) { setTimeout(promptInstall, 300); }
+document.getElementById('startBtn').addEventListener('click', ()=>{
+  enterFullscreen();
 });
 
-// ---- Service Worker registration ----
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', ()=> navigator.serviceWorker.register('/sw.js'));
-}
-
-// Kick off
 resizeCanvas();
 </script></body>
 </html>
-
