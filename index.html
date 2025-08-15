@@ -164,8 +164,28 @@ window.addEventListener('orientationchange', async () => {
 
 document.getElementById('startBtn').addEventListener('click', ()=>{
   enterFullscreen();
+  history.pushState(null, '', location.href);
+});
+
+// Tangani tombol back agar tidak keluar game
+window.addEventListener('popstate', (event) => {
+  history.pushState(null, '', location.href);
+  // Tetap redraw game tanpa reset
+  draw();
+});
+
+// Pause/resume saat visibilitas berubah
+let wasDrawing = false;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    wasDrawing = drawing;
+    drawing = false; // pause
+  } else {
+    drawing = wasDrawing;
+    draw(); // redraw sesuai posisi terakhir
+  }
 });
 
 resizeCanvas();
 </script></body>
-</html>
+  </html>
