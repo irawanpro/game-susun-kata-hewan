@@ -1,197 +1,316 @@
+<!doctype html>
 
-<!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Sambung Garis</title>
-<style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    background: #222;
-    overflow: hidden;
-    height: 100%;
-    touch-action: none;
-  }
-  #gameCanvas {
-    display: block;
-    background: #fff;
-  }
-  #overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,0.9);
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    font-family: sans-serif;
-    z-index: 10;
-  }
-  button {
-    margin-top: 20px;
-    padding: 10px 20px;
-    font-size: 18px;
-  }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Sambung Garis – 20 Level (Landscape)</title>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { height: 100%; margin: 0; background:#0f172a; color:#e5e7eb; overflow: hidden; font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Helvetica Neue',Arial; }
+    canvas { display:block; width:100%; height:100%; touch-action:none; background:#0b1220; }
+    #instructions, #overlay {
+      position: fixed; inset: 0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px; z-index:20; background:rgba(0,0,0,.9);
+    }
+    #overlay{ display:none; }
+    button { margin-top:16px; padding:10px 18px; border:none; border-radius:10px; font-weight:700; background:#22c55e; color:#041016; cursor:pointer; }
+    .btn-alt { background:#38bdf8; color:#041016; }
+    small { opacity:.85; }
+    #hud { position: fixed; left:12px; top:8px; z-index:15; pointer-events:none; font-weight:700; background:rgba(0,0,0,.35); padding:6px 10px; border-radius:8px; }
+    .toast { position: fixed; left:50%; bottom:28px; transform:translateX(-50%); background:#111827; color:#e5e7eb; padding:8px 12px; border-radius:8px; font-size:12px; opacity:0; transition:opacity .2s; z-index: 25; }
+    .toast.show{ opacity:1; }
+  </style>
 </head>
 <body>
+  <div id="hud">Level 1 / 20</div>
+  <canvas id="game"></canvas>  <div id="instructions">
+    <h1>Instruksi Permainan</h1>
+    <p>Tarik <b>satu garis</b> untuk menghubungkan semua titik. Urutan titik <b>bebas</b>. Jangan angkat jari sebelum semua titik tersambung.</p>
+    <small>Created by : <b>GlowandGrow</b><br>Contact person : <b>+6289629065679 / Rahma</b></small>
+    <button id="startBtn">Mulai Game</button>
+  </div>  <div id="overlay">
+    <h2 id="overlayTitle">Level Selesai!</h2>
+    <p id="overlayDesc"></p>
+    <div>
+      <button id="nextBtn">Lanjut Level Berikutnya</button>
+      <button id="restartBtn" class="btn-alt" style="display:none; margin-left:8px;">Main dari Level 1</button>
+    </div>
+  </div>  <div class="toast" id="toast">Belum semua titik tersambung</div><script>
+// =================== Anti zoom (pinch & ctrl-zoom)
+window.addEventListener('wheel', (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive:false });
+['gesturestart','gesturechange','gestureend'].forEach(ev => window.addEventListener(ev, e=>e.preventDefault(), {passive:false}));
 
-<canvas id="gameCanvas"></canvas>
-
-<div id="overlay">
-  <h1>Instruksi Bermain</h1>
-  <p>Hubungkan semua titik menjadi satu garis tanpa terputus.</p>
-  <p>Created by : GlowandGrow<br>
-     Contact person : +6289629065679 / Rahma</p>
-  <button id="startBtn">Mulai Game</button>
-</div>
-
-<script>
-const canvas = document.getElementById('gameCanvas');
+// =================== Canvas & Board (square letterbox + DPR)
+const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
-let points = [];
-let visited = [];
-let lines = [];
-let currentLevel = 0;
+let W=0,H=0,DPR=1; // canvas CSS px
+let board = { x:0, y:0, size:0 }; // square board area in CSS px
 
+function setupCanvas(){
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+  DPR = dpr;
+  const w = Math.floor(window.innerWidth);
+  const h = Math.floor(window.innerHeight);
+  canvas.width = Math.floor(w*dpr);
+  canvas.height = Math.floor(h*dpr);
+  canvas.style.width = w+'px';
+  canvas.style.height = h+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0); // draw in CSS pixels
+  W = w; H = h;
+  // Square board centered (keeps proportions stabil across landscape devices)
+  const s = Math.min(W, H);
+  board.size = s;
+  board.x = Math.floor((W - s)/2);
+  board.y = Math.floor((H - s)/2);
+}
+
+function boardToScreen(pt){ return { x: board.x + pt.x*board.size, y: board.y + pt.y*board.size }; }
+function screenToBoard(x,y){ return { x: (x - board.x)/board.size, y: (y - board.y)/board.size }; }
+
+// =================== Level definitions (0..1 in board coords)
 const levels = [
-  // 20 level koordinat relatif (0-1)
-  [{x:0.2,y:0.2},{x:0.8,y:0.2},{x:0.8,y:0.8},{x:0.2,y:0.8}], // persegi
-  [{x:0.5,y:0.2},{x:0.8,y:0.8},{x:0.2,y:0.8}], // segitiga
-  [{x:0.2,y:0.2},{x:0.8,y:0.4},{x:0.2,y:0.6},{x:0.8,y:0.8}], // zigzag
-  [{x:0.5,y:0.2},{x:0.65,y:0.3},{x:0.8,y:0.5},{x:0.65,y:0.7},{x:0.5,y:0.8},{x:0.35,y:0.7},{x:0.2,y:0.5},{x:0.35,y:0.3}], // lingkaran sederhana
-  [{x:0.5,y:0.2},{x:0.6,y:0.5},{x:0.8,y:0.5},{x:0.65,y:0.65},{x:0.7,y:0.85},{x:0.5,y:0.72},{x:0.3,y:0.85},{x:0.35,y:0.65},{x:0.2,y:0.5},{x:0.4,y:0.5}], // bintang sederhana
-  // sisanya bentuk variasi
-  [{x:0.2,y:0.2},{x:0.5,y:0.2},{x:0.8,y:0.2},{x:0.8,y:0.5},{x:0.8,y:0.8},{x:0.5,y:0.8},{x:0.2,y:0.8},{x:0.2,y:0.5}],
-  [{x:0.3,y:0.3},{x:0.7,y:0.3},{x:0.7,y:0.7},{x:0.3,y:0.7}],
-  [{x:0.1,y:0.5},{x:0.5,y:0.1},{x:0.9,y:0.5},{x:0.5,y:0.9}],
-  [{x:0.2,y:0.4},{x:0.4,y:0.2},{x:0.6,y:0.2},{x:0.8,y:0.4},{x:0.8,y:0.6},{x:0.6,y:0.8},{x:0.4,y:0.8},{x:0.2,y:0.6}],
-  [{x:0.5,y:0.1},{x:0.9,y:0.5},{x:0.5,y:0.9},{x:0.1,y:0.5}],
-  [{x:0.3,y:0.3},{x:0.7,y:0.3},{x:0.7,y:0.7},{x:0.3,y:0.7},{x:0.5,y:0.5}],
-  [{x:0.2,y:0.2},{x:0.8,y:0.2},{x:0.8,y:0.8},{x:0.2,y:0.8},{x:0.5,y:0.5}],
-  [{x:0.25,y:0.25},{x:0.75,y:0.25},{x:0.75,y:0.75},{x:0.25,y:0.75}],
-  [{x:0.15,y:0.15},{x:0.85,y:0.15},{x:0.85,y:0.85},{x:0.15,y:0.85}],
-  [{x:0.5,y:0.2},{x:0.7,y:0.4},{x:0.5,y:0.6},{x:0.3,y:0.4}],
-  [{x:0.2,y:0.3},{x:0.8,y:0.3},{x:0.8,y:0.7},{x:0.2,y:0.7}],
-  [{x:0.4,y:0.4},{x:0.6,y:0.4},{x:0.6,y:0.6},{x:0.4,y:0.6}],
-  [{x:0.3,y:0.5},{x:0.5,y:0.3},{x:0.7,y:0.5},{x:0.5,y:0.7}],
-  [{x:0.25,y:0.25},{x:0.75,y:0.25},{x:0.75,y:0.75},{x:0.25,y:0.75},{x:0.5,y:0.5}],
-  [{x:0.1,y:0.1},{x:0.9,y:0.1},{x:0.9,y:0.9},{x:0.1,y:0.9}]
+  // 1. Persegi
+  [ {x:.2,y:.2},{x:.8,y:.2},{x:.8,y:.8},{x:.2,y:.8} ],
+  // 2. Persegi panjang 6 titik
+  [ {x:.2,y:.3},{x:.5,y:.2},{x:.8,y:.3},{x:.8,y:.7},{x:.5,y:.8},{x:.2,y:.7} ],
+  // 3. Segitiga
+  [ {x:.2,y:.8},{x:.8,y:.8},{x:.5,y:.2} ],
+  // 4. X (salib miring) + tengah
+  [ {x:.2,y:.2},{x:.8,y:.8},{x:.8,y:.2},{x:.2,y:.8},{x:.5,y:.5} ],
+  // 5. Plus (+)
+  [ {x:.5,y:.2},{x:.5,y:.8},{x:.2,y:.5},{x:.8,y:.5},{x:.5,y:.5} ],
+  // 6. Zigzag 1
+  [ {x:.2,y:.3},{x:.35,y:.6},{x:.5,y:.3},{x:.65,y:.6},{x:.8,y:.3} ],
+  // 7. Wajik (diamond)
+  [ {x:.5,y:.2},{x:.8,y:.5},{x:.5,y:.8},{x:.2,y:.5} ],
+  // 8. Pentagon sederhana
+  [ {x:.5,y:.18},{x:.78,y:.38},{x:.67,y:.78},{x:.33,y:.78},{x:.22,y:.38} ],
+  // 9. Hexagon
+  [ {x:.3,y:.25},{x:.7,y:.25},{x:.85,y:.55},{x:.7,y:.85},{x:.3,y:.85},{x:.15,y:.55} ],
+  // 10. Bintang 5 titik (outline)
+  [ {x:.5,y:.15},{x:.6,y:.45},{x:.9,y:.45},{x:.65,y:.62},{x:.75,y:.9},{x:.5,y:.72},{x:.25,y:.9},{x:.35,y:.62},{x:.1,y:.45},{x:.4,y:.45} ],
+  // 11. Spiral kotak
+  [ {x:.2,y:.2},{x:.8,y:.2},{x:.8,y:.8},{x:.3,y:.8},{x:.3,y:.3},{x:.7,y:.3},{x:.7,y:.7},{x:.4,y:.7},{x:.4,y:.4} ],
+  // 12. S-curve titik
+  [ {x:.2,y:.3},{x:.35,y:.2},{x:.5,y:.35},{x:.65,y:.5},{x:.5,y:.65},{x:.35,y:.8},{x:.2,y:.7},{x:.8,y:.7} ],
+  // 13. Cluster acak 7
+  [ {x:.25,y:.25},{x:.4,y:.35},{x:.7,y:.3},{x:.6,y:.6},{x:.35,y:.7},{x:.15,y:.55},{x:.85,y:.75} ],
+  // 14. Tangga
+  [ {x:.25,y:.25},{x:.45,y:.25},{x:.45,y:.4},{x:.6,y:.4},{x:.6,y:.55},{x:.75,y:.55} ],
+  // 15. Rumah
+  [ {x:.25,y:.7},{x:.75,y:.7},{x:.75,y:.45},{x:.5,y:.25},{x:.25,y:.45} ],
+  // 16. Panah kanan
+  [ {x:.25,y:.5},{x:.6,y:.5},{x:.5,y:.35},{x:.8,y:.5},{x:.5,y:.65} ,{x:.6,y:.5} ],
+  // 17. Hati (aproksimasi)
+  [ {x:.3,y:.35},{x:.4,y:.25},{x:.5,y:.35},{x:.6,y:.25},{x:.7,y:.35},{x:.5,y:.75},{x:.3,y:.35},{x:.7,y:.35} ],
+  // 18. Lingkaran 8 titik
+  [ {x:.5,y:.15},{x:.7,y:.22},{x:.82,y:.4},{x:.7,y:.68},{x:.5,y:.75},{x:.3,y:.68},{x:.18,y:.4},{x:.3,y:.22} ],
+  // 19. Chevron ganda
+  [ {x:.2,y:.35},{x:.35,y:.5},{x:.5,y:.35},{x:.65,y:.5},{x:.8,y:.35} ],
+  // 20. Grid 3x3
+  [ {x:.25,y:.25},{x:.5,y:.25},{x:.75,y:.25},{x:.25,y:.5},{x:.5,y:.5},{x:.75,y:.5},{x:.25,y:.75},{x:.5,y:.75},{x:.75,y:.75} ],
 ];
 
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  draw();
-}
+// =================== Game state
+let currentLevel = 0;
+let visited = new Set();        // set of node indices
+let drawing = false;
+let path = [];                  // path points in BOARD coords (0..1)
+let activePointerId = null;
 
-function scalePoints(level) {
-  return level.map(p => ({
-    x: p.x * canvas.width,
-    y: p.y * canvas.height
-  }));
-}
+const NODE_R = 0.03;           // radius in board units (3% board size)
+const PATH_SNAP_DIST = 0.004;  // add path point if moved > 0.4% board
 
-function loadLevel(idx) {
-  points = scalePoints(levels[idx]);
-  visited = [];
-  lines = [];
-  draw();
-}
-
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#000";
-  ctx.font = "20px sans-serif";
-  ctx.fillText(`Level ${currentLevel+1} / ${levels.length}`, 10, 30);
-
-  ctx.strokeStyle = "blue";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  for (let line of lines) {
-    ctx.moveTo(line[0].x, line[0].y);
-    ctx.lineTo(line[1].x, line[1].y);
+// =================== Helpers
+function nodeAtBoard(bx,by){
+  for(let i=0;i<nodes().length;i++){
+    const p = nodes()[i];
+    const dx = bx - p.x, dy = by - p.y;
+    if (Math.hypot(dx,dy) <= NODE_R) return i;
   }
-  ctx.stroke();
+  return -1;
+}
+function nodes(){ return levels[currentLevel]; }
 
-  points.forEach((p,i) => {
+function updateHud(){
+  document.getElementById('hud').textContent = `Level ${currentLevel+1} / ${levels.length}`;
+}
+
+// =================== Rendering
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // letterbox frame
+  ctx.save();
+  ctx.fillStyle = '#0b1220';
+  ctx.fillRect(0,0,W,H);
+  ctx.restore();
+
+  // subtle grid inside board
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(board.x, board.y, board.size, board.size);
+  ctx.clip();
+  ctx.globalAlpha = .12; ctx.strokeStyle = '#334155';
+  for(let x=board.x; x<=board.x+board.size; x+=40){ ctx.beginPath(); ctx.moveTo(x,board.y); ctx.lineTo(x,board.y+board.size); ctx.stroke(); }
+  for(let y=board.y; y<=board.y+board.size; y+=40){ ctx.beginPath(); ctx.moveTo(board.x,y); ctx.lineTo(board.x+board.size,y); ctx.stroke(); }
+  ctx.restore();
+
+  // draw path (convert board->screen each point)
+  if (path.length>0){
+    ctx.lineJoin='round'; ctx.lineCap='round'; ctx.lineWidth=8; ctx.strokeStyle='#22c55e';
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 10, 0, Math.PI*2);
-    ctx.fillStyle = visited.includes(i) ? "green" : "red";
-    ctx.fill();
+    const p0 = boardToScreen(path[0]);
+    ctx.moveTo(p0.x, p0.y);
+    for(let i=1;i<path.length;i++){
+      const p = boardToScreen(path[i]);
+      ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+  }
+
+  // draw nodes
+  nodes().forEach((p,idx)=>{
+    const s = boardToScreen(p);
+    ctx.beginPath(); ctx.arc(s.x, s.y, NODE_R*board.size, 0, Math.PI*2);
+    ctx.fillStyle = visited.has(idx)? '#22c55e' : '#0ea5e9';
+    ctx.shadowColor = visited.has(idx)? '#22c55e' : '#0ea5e9';
+    ctx.shadowBlur = visited.has(idx)? 0 : 8;
+    ctx.fill(); ctx.shadowBlur=0;
   });
 }
 
-let isDrawing = false;
-let lastPoint = null;
-
-canvas.addEventListener('touchstart', e => {
-  e.preventDefault();
-  const t = e.touches[0];
-  const idx = getPointIndex(t.clientX, t.clientY);
-  if (idx !== -1) {
-    isDrawing = true;
-    visited.push(idx);
-    lastPoint = points[idx];
+// =================== Input (Pointer events unified)
+canvas.addEventListener('pointerdown', (e)=>{
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  const b = screenToBoard(x,y);
+  const idx = nodeAtBoard(b.x,b.y);
+  if (idx!==-1 && activePointerId===null){
+    activePointerId = e.pointerId;
+    canvas.setPointerCapture(activePointerId);
+    drawing = true; visited = new Set([idx]);
+    path = [ {x:nodes()[idx].x, y:nodes()[idx].y} ];
     draw();
   }
 });
 
-canvas.addEventListener('touchmove', e => {
-  e.preventDefault();
-  if (!isDrawing) return;
-  const t = e.touches[0];
-  const idx = getPointIndex(t.clientX, t.clientY);
-  if (idx !== -1 && !visited.includes(idx)) {
-    lines.push([lastPoint, points[idx]]);
-    visited.push(idx);
-    lastPoint = points[idx];
-    draw();
-    if (visited.length === points.length) {
-      setTimeout(nextLevel, 1000);
-    }
+canvas.addEventListener('pointermove', (e)=>{
+  if (!drawing || e.pointerId!==activePointerId) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  const b = screenToBoard(x,y);
+
+  // extend path smoothly in board units
+  if (path.length===0 || Math.hypot(b.x-path[path.length-1].x, b.y-path[path.length-1].y) > PATH_SNAP_DIST){
+    path.push({x:b.x, y:b.y});
   }
+
+  // check node hit
+  const idx = nodeAtBoard(b.x,b.y);
+  if (idx!==-1 && !visited.has(idx)){
+    visited.add(idx);
+    // snap to node center
+    path.push({x:nodes()[idx].x, y:nodes()[idx].y});
+    if (visited.size === nodes().length){ winLevel(); }
+  }
+  draw();
 });
 
-canvas.addEventListener('touchend', () => {
-  isDrawing = false;
-  lastPoint = null;
-});
+function endStroke(){
+  if (!drawing) return;
+  drawing=false;
+  if (activePointerId!==null){
+    try{ canvas.releasePointerCapture(activePointerId); }catch{}
+  }
+  activePointerId = null;
+  if (visited.size < nodes().length){
+    toast('Belum semua titik tersambung');
+    // reset hanya path & visited, level tetap
+    visited = new Set(); path = []; draw();
+  }
+}
+canvas.addEventListener('pointerup', endStroke);
+canvas.addEventListener('pointercancel', endStroke);
 
-function getPointIndex(x, y) {
-  return points.findIndex(p => Math.hypot(p.x - x, p.y - y) < 15);
+// =================== Overlay & Level flow
+const overlay = document.getElementById('overlay');
+const overlayTitle = document.getElementById('overlayTitle');
+const overlayDesc = document.getElementById('overlayDesc');
+const nextBtn = document.getElementById('nextBtn');
+const restartBtn = document.getElementById('restartBtn');
+
+function winLevel(){
+  drawing=false;
+  const isLast = currentLevel === levels.length-1;
+  overlayTitle.textContent = isLast? 'Semua Level Selesai!' : `Level ${currentLevel+1} Selesai!`;
+  overlayDesc.textContent = isLast? 'Keren! Kamu menuntaskan 20 pola.' : `Siap ke Level ${currentLevel+2}?`;
+  nextBtn.style.display = isLast? 'none':'inline-block';
+  restartBtn.style.display = isLast? 'inline-block':'none';
+  overlay.style.display='flex';
+}
+nextBtn.addEventListener('click', ()=>{ overlay.style.display='none'; loadLevel(currentLevel+1); });
+restartBtn.addEventListener('click', ()=>{ overlay.style.display='none'; loadLevel(0); });
+
+// =================== Toast helper
+const toastEl = document.getElementById('toast');
+let toastTimer=null;
+function toast(msg){
+  toastEl.textContent=msg; toastEl.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>toastEl.classList.remove('show'), 1200);
 }
 
-function nextLevel() {
-  currentLevel++;
-  if (currentLevel >= levels.length) {
-    alert("Selamat! Semua pola selesai.");
-    currentLevel = 0;
+// =================== Lifecycle: resize/orientation/back/visibility
+function redrawAfterLayout(){
+  setupCanvas();
+  draw();
+}
+window.addEventListener('resize', ()=>{ setTimeout(redrawAfterLayout, 200); });
+window.addEventListener('orientationchange', async ()=>{
+  // coba kunci balik ke landscape jika tiba2 portrait
+  if (screen.orientation?.type?.startsWith('portrait')){
+    try{ await screen.orientation.lock('landscape'); }catch{}
   }
-  loadLevel(currentLevel);
+  setTimeout(redrawAfterLayout, 300);
+});
+
+// History (blok back keluar/refresh)
+history.replaceState({game:true}, '');
+window.addEventListener('popstate', (e)=>{
+  if (e.state && e.state.game){ history.pushState({game:true}, ''); draw(); }
+});
+
+// Pause/resume
+let wasDrawing=false;
+document.addEventListener('visibilitychange', ()=>{
+  if (document.hidden){ wasDrawing=drawing; drawing=false; }
+  else { drawing=wasDrawing; draw(); }
+});
+
+// =================== Level load
+function loadLevel(i){
+  currentLevel = (i+levels.length) % levels.length;
+  visited = new Set();
+  path = [];
+  updateHud();
+  setupCanvas();
+  draw();
 }
 
-window.addEventListener('resize', () => {
-  setTimeout(resizeCanvas, 200);
-});
-window.addEventListener('orientationchange', () => {
-  setTimeout(resizeCanvas, 200);
+// =================== Start flow (fullscreen + lock landscape)
+const instr = document.getElementById('instructions');
+document.getElementById('startBtn').addEventListener('click', async ()=>{
+  // masuk fullscreen
+  const elem = document.documentElement;
+  try { await (elem.requestFullscreen?.call(elem) || elem.webkitRequestFullscreen?.call(elem)); } catch {}
+  try { await screen.orientation?.lock('landscape'); } catch {}
+  instr.style.display='none';
+  loadLevel(0);
 });
 
-document.getElementById('startBtn').addEventListener('click', async () => {
-  document.getElementById('overlay').style.display = 'none';
-  if (canvas.requestFullscreen) await canvas.requestFullscreen();
-  if (screen.orientation && screen.orientation.lock) {
-    try { await screen.orientation.lock('landscape'); } catch(e){}
-  }
-  resizeCanvas();
-  loadLevel(currentLevel);
-});
-</script>
-
-</body>
+// boot once for initial layout (before start)
+setupCanvas();
+updateHud();
+draw();
+</script></body>
   </html>
