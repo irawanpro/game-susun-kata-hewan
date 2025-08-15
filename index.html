@@ -8,14 +8,38 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <title>One Line Draw – PWA</title>
   <style>
-    html, body { height: 100%; margin: 0; background:#0f172a; color:#e2e8f0; }
+    html, body { height: 100%; margin: 0; background:#0f172a; color:#e2e8f0; overflow: hidden; }
     canvas { display:block; width:100%; height:100%; touch-action:none; }
     #startBtn { position: fixed; top: 10px; left: 10px; z-index: 10; padding: 10px 16px; border: none; background: #22c55e; color: #041016; border-radius: 8px; font-weight: bold; }
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      z-index: 20;
+    }
+    #overlay button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #22c55e;
+      color: #041016;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
   <button id="startBtn">Mulai Game</button>
-  <canvas id="game"></canvas><script>
+  <canvas id="game"></canvas>
+  <div id="overlay">
+    <h1>Berhasil! Semua titik terhubung</h1>
+    <button id="nextBtn">Main Lagi</button>
+  </div><script>
 // Anti zoom
 window.addEventListener('wheel', (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive:false });
 ['gesturestart','gesturechange','gestureend'].forEach(ev => window.addEventListener(ev, e=>e.preventDefault(), {passive:false}));
@@ -48,7 +72,6 @@ function draw(){
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
 
-  // Garis sambungan permanen
   if (currentPath.length > 0) {
     ctx.strokeStyle = '#22c55e';
     ctx.lineWidth = 4;
@@ -60,7 +83,6 @@ function draw(){
     ctx.stroke();
   }
 
-  // Titik
   nodes.forEach((n,i)=>{
     ctx.beginPath();
     ctx.arc(n.x*width, n.y*height, 12, 0, Math.PI*2);
@@ -99,13 +121,29 @@ canvas.addEventListener('pointermove', e=>{
   if (node !== null && !visited.includes(node)) {
     visited.push(node);
     if (visited.length === nodes.length) {
-      setTimeout(()=>alert('Berhasil! Semua titik terhubung'), 100);
+      showOverlay();
     }
   }
   draw();
 });
 
 window.addEventListener('pointerup', ()=>{ drawing = false; });
+
+function showOverlay(){
+  document.getElementById('overlay').style.display = 'flex';
+}
+
+function resetGame(){
+  visited = [];
+  currentPath = [];
+  drawing = false;
+  document.getElementById('overlay').style.display = 'none';
+  draw();
+}
+
+document.getElementById('nextBtn').addEventListener('click', ()=>{
+  resetGame();
+});
 
 // Fullscreen + orientasi landscape lock & auto-correct
 async function enterFullscreen() {
