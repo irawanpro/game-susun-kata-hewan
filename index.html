@@ -5,23 +5,23 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#0f172a" />
-  <link rel="manifest" href="/manifest.webmanifest" />
   <title>One Line Draw – PWA</title>
   <style>
-    html, body { height: 100%; margin: 0; background:#0f172a; color:#e2e8f0; overflow: hidden; }
+    html, body { height: 100%; margin: 0; background:#0f172a; color:#e2e8f0; overflow: hidden; font-family: sans-serif; }
     canvas { display:block; width:100%; height:100%; touch-action:none; }
-    #startBtn { position: fixed; top: 10px; left: 10px; z-index: 10; padding: 10px 16px; border: none; background: #22c55e; color: #041016; border-radius: 8px; font-weight: bold; }
-    #overlay {
+    #overlay, #instructions {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.7);
-      display: none;
+      background: rgba(0,0,0,0.9);
+      display: flex;
       justify-content: center;
       align-items: center;
       flex-direction: column;
       z-index: 20;
+      text-align: center;
+      padding: 20px;
     }
-    #overlay button {
+    button {
       margin-top: 20px;
       padding: 10px 20px;
       font-size: 16px;
@@ -30,14 +30,20 @@
       border: none;
       border-radius: 8px;
       font-weight: bold;
+      cursor: pointer;
     }
+    h1, h2, p { margin: 8px 0; }
+    small { opacity: 0.8; font-size: 14px; }
   </style>
 </head>
 <body>
-  <button id="startBtn">Mulai Game</button>
-  <canvas id="game"></canvas>
-  <div id="overlay">
-    <h1>Berhasil! Semua titik terhubung</h1>
+  <canvas id="game"></canvas>  <div id="instructions">
+    <h1>Instruksi Permainan</h1>
+    <p>Tarik garis untuk menghubungkan semua titik tanpa mengangkat jari.</p>
+    <small>Created by : GlowandGrow<br>Contact person : +6289629065679 / Rahma</small>
+    <button id="startBtn">Mulai Game</button>
+  </div>  <div id="overlay" style="display:none;">
+    <h2>Berhasil! Semua titik terhubung</h2>
     <button id="nextBtn">Main Lagi</button>
   </div><script>
 // Anti zoom
@@ -56,7 +62,7 @@ function resizeCanvas() {
 }
 window.addEventListener('resize', resizeCanvas);
 
-// Level data: titik dan urutan sambungan
+// Data level
 const nodes = [
   {x:0.2, y:0.2},
   {x:0.8, y:0.2},
@@ -145,45 +151,19 @@ document.getElementById('nextBtn').addEventListener('click', ()=>{
   resetGame();
 });
 
-// Fullscreen + orientasi landscape lock & auto-correct
-async function enterFullscreen() {
+// Fullscreen + lock landscape
+async function enterFullscreenLandscape() {
   const elem = document.documentElement;
   if (elem.requestFullscreen) await elem.requestFullscreen();
   else if (elem.webkitRequestFullscreen) await elem.webkitRequestFullscreen();
-
   if (screen.orientation && screen.orientation.lock) {
     try { await screen.orientation.lock('landscape'); } catch (e) {}
   }
 }
 
-window.addEventListener('orientationchange', async () => {
-  if (screen.orientation.type.startsWith('portrait')) {
-    try { await screen.orientation.lock('landscape'); } catch (e) {}
-  }
-});
-
-document.getElementById('startBtn').addEventListener('click', ()=>{
-  enterFullscreen();
-  history.pushState(null, '', location.href);
-});
-
-// Tangani tombol back agar tidak keluar game
-window.addEventListener('popstate', (event) => {
-  history.pushState(null, '', location.href);
-  // Tetap redraw game tanpa reset
-  draw();
-});
-
-// Pause/resume saat visibilitas berubah
-let wasDrawing = false;
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    wasDrawing = drawing;
-    drawing = false; // pause
-  } else {
-    drawing = wasDrawing;
-    draw(); // redraw sesuai posisi terakhir
-  }
+document.getElementById('startBtn').addEventListener('click', async ()=>{
+  await enterFullscreenLandscape();
+  document.getElementById('instructions').style.display = 'none';
 });
 
 resizeCanvas();
